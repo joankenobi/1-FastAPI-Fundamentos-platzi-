@@ -3,12 +3,13 @@ from fastapi import Body #se usa para que un conjunto de datos de entrada
                             #se comporten como un request body y no como un query parameter
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel #permite la creacion facil de modelos
+from pydantic import Field #permite la implementacion de validaciones y datos defaults
 from typing import Optional # indica condiciones a las variables
 
 
 # inicia la app
 app =FastAPI()
-app.title = "Mi aplicacion con FastApi"
+app.title = "Mi aplicacion con FastApi (Joan)"
 app.version = "0.0.1"
 
 
@@ -18,11 +19,11 @@ class Movie(BaseModel):
 		Con esta clase no es necesario estar agregando cada parametro de las "Movies" en los metodos post and delete.
 	'''
 	id: Optional[int] = None
-	title: str
-	overview: str
-	year: int
-	rating: float
-	category: str
+	title: str = Field(default= "Mi pelicula", min_length=5, max_length=15)
+	overview: str = Field(default= "Es una pelicula genial", min_length=15, max_length=50)
+	year: int = Field(le=2022)
+	rating: float = Field(default=10, ge=1, le=10)
+	category: str = Field(default='Categoría', min_length=5, max_length=15)
 
 
 # Datos a modificar
@@ -72,30 +73,30 @@ def get_movies_by_category(category: str, year: int):
 
 #------------ Post method --------
 
-#
+#queremos que con el metodo post de cree una nueva pelucula
 @app.post(path='/movies', tags=['Movies'])
-def create_movie(
-	id: int = Body(),
-	title: str = Body(),
-	overview: str = Body(),
-	year:int = Body(), 
-	rating: float = Body(), 
-	category: str = Body(),
-):
-	movies.append({
-			"id": id,
-			"title": title,
-			"overview": overview,
-			"year": year,
-			"rating": rating,
-			"category": category
-	})
+def create_movie(movie:Movie):
+	movies.append(movie) #revisar los commits para ver como se hacia antes de aplicar las clases
+	return movies
+
+#------------ Put method --------
+
+#con el metodo put se busca actualizar una movie en especifico
+@app.put('/movies/{id}', tags=['Movies'])
+def update_movie(id:int, movie:Movie):
+	for item in movies:
+		if item["id"]==id:
+			item["title"]= Movie.title
+			item["overview"]= Movie.overview
+			item["year"]= Movie.year
+			item["rating"]= Movie.rating
+			item["category"]= Movie.category
 	return movies
 
 #------------ Delete method --------
 
 #queremos que cuando se le pase un {id} al movies/{id} pero con el metodo delete, se borre la peli con ese id
-@app.delete('/movies/{id}', tags=['movies'])
+@app.delete('/movies/{id}', tags=['Movies']) # los tags organizan los metodos en la documentacion automatica
 def delete_movie(id: int):
     for item in movies:
         if item["id"] == id:
