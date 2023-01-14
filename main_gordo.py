@@ -3,10 +3,12 @@ from fastapi import Body #se usa para que un conjunto de datos de entrada
                             #se comporten como un request body y no como un query parameter
 from fastapi import Path # permiten aplicar validaciones y configuracion a los tipos de parametros
 from fastapi import Query # permiten aplicar validaciones y configuracion a los tipos de parametros
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse # permite respuestas en formato HTML
+from fastapi.responses import JSONResponse # permite repuestas en formato Json
 from pydantic import BaseModel #permite la creacion facil de modelos
 from pydantic import Field #permite la implementacion de validaciones y datos defaults
 from typing import Optional # indica condiciones a las variables
+from typing import List # indica tipo de variable, puede contener otros tipos.
 
 
 # inicia la app
@@ -69,58 +71,64 @@ def message():
     return HTMLResponse('<h1>Hello word</h1>')
 
 #queremos que cuando habra la direccion de Movies muestre la lista de peliculas
-@app.get(path='/movies', tags=['Movies']) #path decorator
-def get_movies():
-    return movies
+@app.get(
+    path='/movies', 
+    tags=['Movies'], 
+    response_model= List[Movie] # indica el tipo de repuesta
+        ) #path decorator
+def get_movies() -> List[Movie]:
+    return JSONResponse( content=movies) # se especifica que es un formato Json
 
     #*********************** Path parameter *****************************
 
 #queremos que al indicar el {id} en la direccion retorne la pelicula con el {id} indicado
 #NOTA: por alguna razon solo funciona con id=1 //////// la identacion del return era erronea.
-@app.get(path='/movies/{id}', tags=['Movies'])
-def get_movie(id: int = Path(ge=0, le=2000)): #aplica validaciones al Path parameter.
+@app.get(path='/movies/{id}', tags=['Movies'], response_model=Movie )
+def get_movie(id: int = Path(ge=0, le=2000)) -> Movie: #aplica validaciones al Path parameter.
     for item in movies:
         if item["id"] == id:
-            return item
-    return []
+            return JSONResponse( content=item)
+    return JSONResponse( content=item)
     #********************************************************************
 
     #*********************** Query parameter *****************************
 
 #queremos que por medio de el path /movies/ filtre las movies con query parameters
-@app.get(path='/movies/', tags=['Movies'])
-def get_movies_by_category(category: str = Query(min_length=5, max_length=15)):
-    return [item for item in movies if item['category'] == category]
+@app.get(path='/movies/', tags=['Movies'], response_model=List[Movie])
+def get_movies_by_category(category: str = Query(min_length=5, max_length=15)) -> List[Movie]:
+    data= [item for item in movies if item['category'] == category]
+    return JSONResponse( content=data)
     #********************************************************************
 
 #------------ Post method --------
 
 #queremos que con el metodo post de cree una nueva pelucula
-@app.post(path='/movies', tags=['Movies'])
-def create_movie(movie:Movie):
+@app.post(path='/movies', tags=['Movies'], response_model=dict)
+def create_movie(movie:Movie)-> dict:
     movies.append(movie) #revisar los commits para ver como se hacia antes de aplicar las clases
-    return movies
+    return JSONResponse(content={"message": f"Se ha registrado la pelicula con el id {movie.id}"})
 
 #------------ Put method --------
 
 #con el metodo put se busca actualizar una movie en especifico
-@app.put('/movies/{id}', tags=['Movies'])
-def update_movie(id:int, movie:Movie):
+@app.put('/movies/{id}', tags=['Movies'], response_model=dict)
+def update_movie(id:int, movie:Movie) -> dict:
     for item in movies:
         if item["id"]==id:
-            item["title"]= Movie.title
-            item["overview"]= Movie.overview
-            item["year"]= Movie.year
-            item["rating"]= Movie.rating
-            item["category"]= Movie.category
-    return movies
+            item["title"]= movie.title
+            item["overview"]= movie.overview
+            item["year"]= movie.year
+            item["rating"]= movie.rating
+            item["category"]= movie.category
+    return JSONResponse( content={"message":f"Se actualizo la pelicula con el id : {id}"})
+
 
 #------------ Delete method --------
 
 #queremos que cuando se le pase un {id} al movies/{id} pero con el metodo delete, se borre la peli con ese id
-@app.delete('/movies/{id}', tags=['Movies']) # los tags organizan los metodos en la documentacion automatica
-def delete_movie(id: int):
+@app.delete('/movies/{id}', tags=['Movies'], response_model=dict) # los tags organizan los metodos en la documentacion automatica
+def delete_movie(id: int) -> dict:
     for item in movies:
         if item["id"] == id:
             movies.remove(item)
-            return movies
+        return JSONResponse( content={"message":f"Se elimino la pelicula con el id : {id}"})
