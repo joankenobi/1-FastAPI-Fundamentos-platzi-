@@ -10,7 +10,7 @@ from pydantic import BaseModel #permite la creacion facil de modelos
 from pydantic import Field #permite la implementacion de validaciones y datos defaults
 from typing import Optional # indica condiciones a las variables
 from typing import List # indica tipo de variable, puede contener otros tipos.
-
+from jwt_manager import create_token
 
 # inicia la app
 app =FastAPI()
@@ -113,7 +113,9 @@ def get_movies_by_category(category: str = Query(min_length=5, max_length=15)) -
 #------------ Post method --------
 @app.post('/login', tags=['auth'])
 def login(user: User):
-    return user
+    if user.email == "admin@gmail.com" and user.pasword == "admin":
+        token: str = create_token(user.dict())
+        return JSONResponse(status_code= status.HTTP_200_OK, content= token)
 
 #queremos que con el metodo post de cree una nueva pelucula
 @app.post(path='/movies', tags=['Movies'], response_model=dict)
