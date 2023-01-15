@@ -1,4 +1,5 @@
 from fastapi import FastAPI #crea la app
+from fastapi import status # status code con alguna definicion
 from fastapi import Body #se usa para que un conjunto de datos de entrada 
                             #se comporten como un request body y no como un query parameter
 from fastapi import Path # permiten aplicar validaciones y configuracion a los tipos de parametros
@@ -18,6 +19,14 @@ app.version = "0.0.1"
 
 
 #------------ El modelo (clase) para la creacion de objetos "movies" --------
+
+class User(BaseModel):
+    '''
+        Clase para el ojeto user, datos para autenticar.
+    '''
+    email:str
+    pasword:str
+
 class Movie(BaseModel):
     ''''
         Con esta clase no es necesario estar agregando cada parametro de las "Movies" en los metodos post and delete.
@@ -74,10 +83,11 @@ def message():
 @app.get(
     path='/movies', 
     tags=['Movies'], 
+    status_code=status.HTTP_200_OK,
     response_model= List[Movie] # indica el tipo de repuesta
         ) #path decorator
 def get_movies() -> List[Movie]:
-    return JSONResponse( content=movies) # se especifica que es un formato Json
+    return JSONResponse( content=movies, status_code=status.HTTP_200_OK) # se especifica que es un formato Json
 
     #*********************** Path parameter *****************************
 
@@ -87,8 +97,8 @@ def get_movies() -> List[Movie]:
 def get_movie(id: int = Path(ge=0, le=2000)) -> Movie: #aplica validaciones al Path parameter.
     for item in movies:
         if item["id"] == id:
-            return JSONResponse( content=item)
-    return JSONResponse( content=item)
+            return JSONResponse( content=item, status_code=status.HTTP_200_OK)
+    return JSONResponse( content=[], status_code=status.HTTP_404_NOT_FOUND)
     #********************************************************************
 
     #*********************** Query parameter *****************************
@@ -101,17 +111,20 @@ def get_movies_by_category(category: str = Query(min_length=5, max_length=15)) -
     #********************************************************************
 
 #------------ Post method --------
+@app.post('/login', tags=['auth'])
+def login(user: User):
+    return user
 
 #queremos que con el metodo post de cree una nueva pelucula
 @app.post(path='/movies', tags=['Movies'], response_model=dict)
 def create_movie(movie:Movie)-> dict:
     movies.append(movie) #revisar los commits para ver como se hacia antes de aplicar las clases
-    return JSONResponse(content={"message": f"Se ha registrado la pelicula con el id {movie.id}"})
+    return JSONResponse(status_code=status.HTTP_201_CREATED, content={"message": f"Se ha registrado la pelicula con el id {movie.id}"})
 
 #------------ Put method --------
 
 #con el metodo put se busca actualizar una movie en especifico
-@app.put('/movies/{id}', tags=['Movies'], response_model=dict)
+@app.put('/movies/{id}', tags=['Movies'], response_model=dict, status_code=status.HTTP_201_CREATED)
 def update_movie(id:int, movie:Movie) -> dict:
     for item in movies:
         if item["id"]==id:
@@ -120,15 +133,18 @@ def update_movie(id:int, movie:Movie) -> dict:
             item["year"]= movie.year
             item["rating"]= movie.rating
             item["category"]= movie.category
-    return JSONResponse( content={"message":f"Se actualizo la pelicula con el id : {id}"})
+            return JSONResponse( content={"message":f"Se actualizo la pelicula con el id : {id}"})
 
 
 #------------ Delete method --------
 
 #queremos que cuando se le pase un {id} al movies/{id} pero con el metodo delete, se borre la peli con ese id
-@app.delete('/movies/{id}', tags=['Movies'], response_model=dict) # los tags organizan los metodos en la documentacion automatica
+@app.delete('/movies/{id}', tags=['Movies'], response_model=dict, status_code=status.HTTP_202_ACCEPTED) # los tags organizan los metodos en la documentacion automatica
 def delete_movie(id: int) -> dict:
     for item in movies:
         if item["id"] == id:
             movies.remove(item)
-        return JSONResponse( content={"message":f"Se elimino la pelicula con el id : {id}"})
+            return JSONResponse( content={"message":f"Se elimino la pelicula con el id : {id}"})
+
+if __name__=="__main__":
+    print(movies)            
