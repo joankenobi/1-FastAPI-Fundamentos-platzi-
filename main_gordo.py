@@ -21,11 +21,19 @@ from typing import List # indica tipo de variable, puede contener otros tipos.
 from jwt_manager import create_token
 from jwt_manager import validate_token
 
+from config.database import d_base, session, engine
+from models.movie import Movie as Movie_dbmodel
+
+
+
 # inicia la app
 app =FastAPI()
 app.title = "Mi aplicacion con FastApi (Joan)"
 app.version = "0.0.1"
 
+d_base.metadata.create_all(
+    bind=engine #parece que bind debe recibir el motor
+    )
 
 #------------ El modelo (clase) para la creacion de objetos "movies" --------
 

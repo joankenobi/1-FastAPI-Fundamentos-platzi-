@@ -17,3 +17,4 @@ def validate_token(token: str) -> dict:
 if __name__=="__main__":
     print("te pica")
     ## para activar un VENV usar en win .\venv\Scripts\activate  
+    #Notas del curso: https://telegra.ph/Curso-de-FastAPI-Base-de-Datos-Modularizaci%C3%B3n-y-Deploy-a-Producci%C3%B3n-01-21
