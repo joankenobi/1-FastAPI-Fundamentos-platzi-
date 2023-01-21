@@ -1,16 +1,25 @@
+from fastapi import Depends
 from fastapi import FastAPI #crea la app
-from fastapi import status # status code con alguna definicion
 from fastapi import Body #se usa para que un conjunto de datos de entrada 
                             #se comporten como un request body y no como un query parameter
+from fastapi import HTTPException
 from fastapi import Path # permiten aplicar validaciones y configuracion a los tipos de parametros
 from fastapi import Query # permiten aplicar validaciones y configuracion a los tipos de parametros
+from fastapi import status # status code con alguna definicion
+from fastapi import Request
 from fastapi.responses import HTMLResponse # permite respuestas en formato HTML
 from fastapi.responses import JSONResponse # permite repuestas en formato Json
+from fastapi.security import HTTPBearer
+from fastapi.encoders import jsonable_encoder # encodear datos a Json
+
 from pydantic import BaseModel #permite la creacion facil de modelos
 from pydantic import Field #permite la implementacion de validaciones y datos defaults
 from typing import Optional # indica condiciones a las variables
+
 from typing import List # indica tipo de variable, puede contener otros tipos.
+
 from jwt_manager import create_token
+from jwt_manager import validate_token
 
 # inicia la app
 app =FastAPI()
@@ -19,6 +28,13 @@ app.version = "0.0.1"
 
 
 #------------ El modelo (clase) para la creacion de objetos "movies" --------
+
+class JWTBearer(HTTPBearer):
+    async def __call__(self, request: Request):
+        auth = await super().__call__(request)
+        data = validate_token(auth.credentials)
+        if data["email"] != "admin@gmail.com":
+            raise HTTPException(status_code= status.HTTP_401_UNAUTHORIZED, detail="Credenciales invalidas")
 
 class User(BaseModel):
     '''
@@ -85,9 +101,12 @@ def message():
     tags=['Movies'], 
     status_code=status.HTTP_200_OK,
     response_model= List[Movie] # indica el tipo de repuesta
+    #dependencies=[
+    #    Depends(JWTBearer())
+    #]
         ) #path decorator
 def get_movies() -> List[Movie]:
-    return JSONResponse( content=movies, status_code=status.HTTP_200_OK) # se especifica que es un formato Json
+    return JSONResponse( content=jsonable_encoder(movies), status_code=status.HTTP_200_OK) # se especifica que es un formato Json
 
     #*********************** Path parameter *****************************
 
@@ -97,7 +116,7 @@ def get_movies() -> List[Movie]:
 def get_movie(id: int = Path(ge=0, le=2000)) -> Movie: #aplica validaciones al Path parameter.
     for item in movies:
         if item["id"] == id:
-            return JSONResponse( content=item, status_code=status.HTTP_200_OK)
+            return JSONResponse( content=jsonable_encoder(item), status_code=status.HTTP_200_OK)
     return JSONResponse( content=[], status_code=status.HTTP_404_NOT_FOUND)
     #********************************************************************
 
@@ -118,9 +137,10 @@ def login(user: User):
         return JSONResponse(status_code= status.HTTP_200_OK, content= token)
 
 #queremos que con el metodo post de cree una nueva pelucula
-@app.post(path='/movies', tags=['Movies'], response_model=dict)
+@app.post(path='/movies', tags=['Movies'], response_model=dict,status_code=status.HTTP_201_CREATED)
 def create_movie(movie:Movie)-> dict:
-    movies.append(movie) #revisar los commits para ver como se hacia antes de aplicar las clases
+    movies.append(dict(movie)) #revisar los commits para ver como se hacia antes de aplicar las clases
+    # return movies
     return JSONResponse(status_code=status.HTTP_201_CREATED, content={"message": f"Se ha registrado la pelicula con el id {movie.id}"})
 
 #------------ Put method --------

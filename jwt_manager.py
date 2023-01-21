@@ -13,3 +13,7 @@ def validate_token(token: str) -> dict:
     '''
     data: dict = decode(token, key="my_secret_key", algorithms=['HS256'])
     return data
+
+if __name__=="__main__":
+    print("te pica")
+    ## para activar un VENV usar en win .\venv\Scripts\activate  
