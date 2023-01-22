@@ -9,9 +9,10 @@ base_dir= os.path.dirname(os.path.realpath(__file__))#direccion del presente arc
 
 data_base_url=f"""sqlite:///{os.path.join(
     base_dir, 
-    "../",#construir en la carpeta raiz
+    "../",
     sqlite_file_name
-    )}""" #la direccion de la base de datos y donde se desea crear
+    )}""" #construir en la carpeta raiz
+    #la direccion de la base de datos y donde se desea crear
 
 engine=create_engine(
     data_base_url,
@@ -19,7 +20,7 @@ engine=create_engine(
     ) # el motor se crea con la url de la base de datos
 
 session=sessionmaker(
-    bind=engine #no se que es esto ????????
+    bind=engine, #no se que es esto ????????
     ) 
 
 
@@ -27,4 +28,5 @@ if __name__=="__main__":
     print(f"base_dir==== {base_dir}")
     print(f"data_base_url ==== {data_base_url}")
     print(f"engine ==== {engine}")
+
 d_base=declarative_base()

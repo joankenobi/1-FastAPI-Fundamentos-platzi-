@@ -114,7 +114,9 @@ def message():
     #]
         ) #path decorator
 def get_movies() -> List[Movie]:
-    return JSONResponse( content=jsonable_encoder(movies), status_code=status.HTTP_200_OK) # se especifica que es un formato Json
+    db = session()
+    result = db.query(Movie_dbmodel).all() #query es para consultar, se le pasa el nombre de la tabla (el modelo)
+    return JSONResponse( content=jsonable_encoder(result), status_code=status.HTTP_200_OK) # se especifica que es un formato Json
 
     #*********************** Path parameter *****************************
 
@@ -122,10 +124,11 @@ def get_movies() -> List[Movie]:
 #NOTA: por alguna razon solo funciona con id=1 //////// la identacion del return era erronea.
 @app.get(path='/movies/{id}', tags=['Movies'], response_model=Movie )
 def get_movie(id: int = Path(ge=0, le=2000)) -> Movie: #aplica validaciones al Path parameter.
-    for item in movies:
-        if item["id"] == id:
-            return JSONResponse( content=jsonable_encoder(item), status_code=status.HTTP_200_OK)
-    return JSONResponse( content=[], status_code=status.HTTP_404_NOT_FOUND)
+    db=session()
+    result=db.query(Movie_dbmodel).filter(Movie_dbmodel.id == id).first()
+    if not result:
+        return JSONResponse( content=[], status_code=status.HTTP_404_NOT_FOUND)
+    return JSONResponse( content=jsonable_encoder(result), status_code=status.HTTP_200_OK)
     #********************************************************************
 
     #*********************** Query parameter *****************************
@@ -133,8 +136,11 @@ def get_movie(id: int = Path(ge=0, le=2000)) -> Movie: #aplica validaciones al P
 #queremos que por medio de el path /movies/ filtre las movies con query parameters
 @app.get(path='/movies/', tags=['Movies'], response_model=List[Movie])
 def get_movies_by_category(category: str = Query(min_length=5, max_length=15)) -> List[Movie]:
-    data= [item for item in movies if item['category'] == category]
-    return JSONResponse( content=data)
+    db=session()
+    result=db.query(Movie_dbmodel).filter(Movie_dbmodel.category == category).all()
+    if not result:
+        return JSONResponse( content=[], status_code=status.HTTP_404_NOT_FOUND)
+    return JSONResponse( content=jsonable_encoder(result))
     #********************************************************************
 
 #------------ Post method --------
@@ -147,8 +153,10 @@ def login(user: User):
 #queremos que con el metodo post de cree una nueva pelucula
 @app.post(path='/movies', tags=['Movies'], response_model=dict,status_code=status.HTTP_201_CREATED)
 def create_movie(movie:Movie)-> dict:
-    movies.append(dict(movie)) #revisar los commits para ver como se hacia antes de aplicar las clases
-    # return movies
+    db=session() #para conectar con la base de datos
+    new_movie=Movie_dbmodel(**movie.dict()) #completamos la entidad db con el modelo dict
+    db.add(new_movie)#agrega a la tabla
+    db.commit()#guarda cambios en la tabla
     return JSONResponse(status_code=status.HTTP_201_CREATED, content={"message": f"Se ha registrado la pelicula con el id {movie.id}"})
 
 #------------ Put method --------
@@ -156,14 +164,18 @@ def create_movie(movie:Movie)-> dict:
 #con el metodo put se busca actualizar una movie en especifico
 @app.put('/movies/{id}', tags=['Movies'], response_model=dict, status_code=status.HTTP_201_CREATED)
 def update_movie(id:int, movie:Movie) -> dict:
-    for item in movies:
-        if item["id"]==id:
-            item["title"]= movie.title
-            item["overview"]= movie.overview
-            item["year"]= movie.year
-            item["rating"]= movie.rating
-            item["category"]= movie.category
-            return JSONResponse( content={"message":f"Se actualizo la pelicula con el id : {id}"})
+    db=session()
+    result=db.query(Movie_dbmodel).filter(Movie_dbmodel.id == id).first()
+    if not result:
+        return JSONResponse( content=[], status_code=status.HTTP_404_NOT_FOUND)
+    #Actualizar los siguientes datos del result
+    result.title = movie.title
+    result.overview = movie.overview
+    result.year = movie.year
+    result.rating = movie.rating
+    result.category = movie.category
+    db.commit() #guardar los cambios.
+    return JSONResponse( content={"message":f"Se actualizo la pelicula con el id : {id}"})
 
 
 #------------ Delete method --------
@@ -171,10 +183,13 @@ def update_movie(id:int, movie:Movie) -> dict:
 #queremos que cuando se le pase un {id} al movies/{id} pero con el metodo delete, se borre la peli con ese id
 @app.delete('/movies/{id}', tags=['Movies'], response_model=dict, status_code=status.HTTP_202_ACCEPTED) # los tags organizan los metodos en la documentacion automatica
 def delete_movie(id: int) -> dict:
-    for item in movies:
-        if item["id"] == id:
-            movies.remove(item)
-            return JSONResponse( content={"message":f"Se elimino la pelicula con el id : {id}"})
+    db=session()
+    result=db.query(Movie_dbmodel).filter(Movie_dbmodel.id == id).first()
+    if not result:
+        return JSONResponse( content=[], status_code=status.HTTP_404_NOT_FOUND)
+    db.delete(result)
+    db.commit() #guardar los cambios.
+    return JSONResponse( content={"message":f"Se elimino la pelicula con el id : {id}"})
 
 if __name__=="__main__":
     print(movies)            
