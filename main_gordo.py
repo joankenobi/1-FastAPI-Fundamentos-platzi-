@@ -23,11 +23,13 @@ from jwt_manager import validate_token
 
 from config.database import d_base, session, engine
 from models.movie import Movie as Movie_dbmodel
+from middlewares.error_handler import ErrorHandler
 
 
 
 # inicia la app
 app =FastAPI()
+app.add_middleware(ErrorHandler) # retorna los errores como responses
 app.title = "Mi aplicacion con FastApi (Joan)"
 app.version = "0.0.1"
 
